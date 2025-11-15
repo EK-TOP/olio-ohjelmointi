@@ -1,24 +1,19 @@
-#include "car.h"
-#include <vector>
 #include <iostream>
+#include "chef.h"
+#include "italianchef.h"
 using namespace std;
 
 int main()
 {
+Chef kokki1 ("Gordon Ramsey");
+ItalianChef Ikokki1 ("Anthony Bourdain");
 
-    vector <Car> carList;
-    carList.emplace_back("Toyota", "Avensis", 1996);
-    carList.emplace_back("Toyota", "Corolla", 2004);
-    carList.emplace_back("Honda", "Civic", 2006);
-    carList.emplace_back("Toyota", "Prius", 1982);
-    carList.emplace_back("Honda", "Monkey", 2024);
+    kokki1.makeSalad();
+    kokki1.makeSoup();
+    Ikokki1.makeSalad();
+    Ikokki1.makePasta();
+    Ikokki1.makeSoup();
+    cout << "name of the italian chef is" << Ikokki1.getName() << endl;
 
-    cout << "Toisen auton tiedot:" << endl;
-    carList[1].printData();
-
-    for (const auto& car : carList) {
-        car.printData();
-    }
-
-    return 0;
+return 0;
 }
