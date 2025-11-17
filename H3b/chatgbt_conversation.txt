@@ -1,0 +1,1273 @@
+
+Sinä sanoit:
+Lähetetty kuva
+Tässä tehtävässä harjoitellaan periytymistä ja metodien ylikirjoittamista C++-ohjelmoinnissa. Tavoitteena on ymmärtää, miten perivä luokka voi ylikirjoittaa kantaluokan metodin, ja nähdä polymorfismi käytännössä C++:ssa.
+
+OHJE: https://peatutor.com/cplus/index.php#overriding
+
+Noudata käytäntöä, että kullekin luokalle luodaan oma header-tiedosto ja oma cpp-tiedosto, joilla on sama nimi kuin luokalla. Tämä hoituu automaattisesti, kun luot luokat Qt-Creatorin toiminnolla "Add New -> C++ Class". Tutustu aluksi UML-kaavion symbooleihin kts. https://peatutor.com/cplus/index.php#uml
+
+Harjoitus3b (perintä/ylikirjoittaminen)
+
+Luo C++-projekti nimeltään h3b
+
+    Lisää projektiin kantaluokka nimeltä Animal, joka sisältää virtuaalisen metodin callOut. Tämä metodi tulostaa tekstin "Eläin ääntelee."
+    Luo kantaluokasta perivä luokka nimeltä Dog, joka ylikirjoittaa metodin callOut. Ylikirjoitetun metodin tulisi tulostaa teksti "Koira haukkuu!"
+    Kirjoita main-funktio, jossa luodaan Animal-luokan olio ja Dog-luokan olio.
+    Kutsu molemmissa tapauksissa callOut-metodia ja varmista, että oikea viesti tulostuu.
+    Varmista, että luomasi oliot tuhoutuvat.
+
+Lisätietoa
+C++: Polymorfismi luokkien Animal ja Dog välillä
+
+Kun sinulla on C++-ohjelmassa, perintäsuhde luokkien Animal ja Dog välillä, voit luoda ja käsitellä olion joko kantaluokan (Animal) tai perivänluokan (Dog) tyypin kautta. Molemmilla tavoilla on etunsa. Tarkastellaan ensin molempia tapoja:
+
+Huom! Modernissa C++:ssa käytetään älykkäitä osoittimia (smart pointers) kuten unique_ptr tai shared_ptr raakaosoittimien sijaan. Näin muisti vapautuu automaattisesti eikä delete-komentoa tarvita.
+
+    unique_ptr<Animal> dog = make_unique<Dog>(); (Polymorfismi)
+    unique_ptr<Dog> dog = make_unique<Dog>(); (Perivänluokan käyttö suoraan)
+
+1. Polymorfinen olio
+
+Plolymorfinen olio voidaan luoda lauseella: unique_ptr<Animal> dog = make_unique<Dog>();, jolloin käytetään kantaluokan tyyppiä, mutta luodaan perivänluokan olio. Tämä tarjoaa monia etuja:
+
+Huom! Tässä tapauksessa Animal luokan destruktori on määritettävä virtuaaliseksi.
+1.1 Polymorfismi
+
+Voit käsitellä Dog-oliota yleisemmällä Animal-tyypillä. Tämä mahdollistaa koodin kirjoittamisen siten, että se voi käsitellä mitä tahansa Animal-tyyppistä oliota (Dog, Cat, jne.), mikä lisää joustavuutta ja laajennettavuutta.
+
+#include <memory>
+#include <vector>
+
+std::vector<std::unique_ptr<Animal>> animals;
+animals.push_back(std::make_unique<Dog>());
+animals.push_back(std::make_unique<Cat>());
+animals.push_back(std::make_unique<Bird>());
+
+for (const auto& animal : animals) {
+    animal->callOut();  // Jokainen eläin toteuttaa oman luokkansa callOut-metodin
+}
+// Muisti vapautuu automaattisesti, kun animals-vektori tuhoutuu
+
+1.2 Yleisemmät funktiot
+
+Funktiot voivat käsitellä Animal-tyyppisiä olioita ilman, että niiden tarvitsee tietää perivää luokkaa:
+
+void handleAnimal(const std::unique_ptr<Animal>& animal) {
+    animal->callOut();  // Polymorfinen kutsu
+}
+
+1.3 Laajennettavuus
+
+Voit lisätä uusia eläinlajeja (Cat, Bird, jne.) ilman, että sinun tarvitsee muuttaa vanhaa koodia, joka käyttää kantaluokkaa (Animal).
+2. Perivänluokan olio
+
+Perivänluokan olio voidaan luoda lauseella: unique_ptr<Dog> dog = make_unique<Dog>();, jolloin käytetään perivänluokan tyyppiä. Tämä voi olla hyödyllistä seuraavissa tilanteissa:
+
+2.1 Perivänluokan ominaisuuksien käyttö
+
+Jos haluat käyttää Dog-luokan erityisiä metodeja tai jäsenmuuttujia, jotka eivät ole kantaluokassa, sinun täytyy käyttää Dog-tyyppiä:
+
+auto dog = std::make_unique<Dog>();
+dog->getOwner();  // Ominaisuus, joka on vain Dog-luokassa, ei Animal-luokassa
+
+2.2 Ei tarvitse virtuaalisia funktioita
+
+Jos et tarvitse polymorfismia, suora Dog-osoitin voi olla tehokkaampi, koska se ei aiheuta ylimääräistä suorituskykykustannusta virtuaalifunktiotaulun (vtable) käytöstä (vtable on taulukko, joka sisältää osoittimet virtuaalisiin metodeihin).
+Yhteenveto
+Ominaisuus 	unique_ptr<Animal> 	unique_ptr<Dog>
+Polymorfismi 	Kyllä 	Ei
+Koodin joustavuus ja laajennettavuus 	Kyllä 	Ei
+Perivänluokan metodit käytettävissä 	Ei ilman tyyppimuunnosta 	Kyllä
+Suorituskyky 	Hieman hitaampi (virtuaalitaulu) 	Hieman nopeampi
+Muistinhallinta 	Automaattinen 	Automaattinen
+Milloin käyttää unique_ptr<Animal> ja milloin unique_ptr<Dog>?
+
+    Käytä unique_ptr<Animal>, kun haluat hyödyntää polymorfismia ja käsitellä erilaisia eläinluokkia samalla tavalla.
+    Käytä unique_ptr<Dog>, kun tiedät tarkalleen, että työskentelet vain Dog-olioiden kanssa ja haluat käyttää sen erityisiä metodeja.
+
+Esimerkki 1: Polymorfismi
+
+std::unique_ptr<Animal> animal = std::make_unique<Dog>();
+animal->callOut();  // Kutsuu Dog:n toteuttamaa callOut-metodia
+
+Esimerkki 2: Suora käyttö
+
+auto dog = std::make_unique<Dog>();
+dog->getOwner();  // Erityinen Dog-metodi
+
+
+älä anna suoria vastauksia auto ainoastaan  rungossa. älä näytä suoria koodeja tai muita muuttujia. 
+
+ChatGPT sanoi:
+
+Mietti 34s
+Aloitetaan tämä pala kerrallaan ja pidetään kiinni siitä, ettet saa suoraa valmista koodia, vaan rungon + idean, jonka täytät itse. 🙂
+
+1. Animal-luokka (kantaluokka)
+Tiedostot:
+
+Animal.h – luokan määrittely
+
+Animal.cpp – metodien toteutus
+
+Mitä Animal.h-tiedostossa on rungollisesti:
+
+Luokkajulistus
+
+Julkinen oletusrakentaja (voi olla tyhjä)
+
+Virtuaalinen destruktori
+
+Virtuaalinen callOut-metodi (ei puhtaasti virtuaalinen tässä tehtävässä)
+
+Rakenne-idea, ei täytenä koodina:
+
+#pragma once tms. yläosaan
+
+class Animal {
+
+public:
+
+rakentaja
+
+virtual destruktori
+
+virtual funktio callOut() ilman parametreja, ei paluuarvoa
+
+Toteutuksessa tulostat tekstin, jossa kerrotaan, että eläin ääntelee
+
+};
+
+Animal.cpp-tiedostossa:
+
+Sisällytä Animalin otsikkotiedosto
+
+Toteuta rakentaja (voi olla tyhjä)
+
+Toteuta destruktori (voi olla tyhjä)
+
+Toteuta callOut() siten, että se tulostaa ohjeen antaman yleisen eläinviestin
+
+2. Dog-luokka (perivä luokka)
+Tiedostot:
+
+Dog.h
+
+Dog.cpp
+
+Dog.h rungollisesti:
+
+#pragma once tms.
+
+Sisällytä Animal.h
+
+Julista luokka, joka perii julkisesti Animalin
+
+Julkinen osio:
+
+rakentaja
+
+tarvittaessa destruktori (voit merkitä sen virtuaaliseksi tai käyttää oletusta)
+
+callOut()-metodi, joka ylikirjoittaa kantaluokan version
+
+käytä override-avainta perässä, jotta näet virheet helposti
+
+Rakenne:
+
+class Dog : public Animal {
+
+public:
+
+rakentaja
+
+destruktori
+
+void callOut() override;
+
+};
+
+Dog.cpp-tiedostossa:
+
+Sisällytä Dogin otsikko
+
+Toteuta rakentaja, destruktori
+
+Toteuta callOut() niin, että se tulostaa koira-viestin (ohjeen tekstin mukaisesti)
+
+3. Polymorfinen käyttö ja olioiden tuhoutuminen
+Tehtävänanto pyytää:
+
+Luomaan Animal-olion
+
+Luomaan Dog-olion
+
+Kutsumaan molemmille callOut()-metodia
+
+Varmistamaan, että oliot tuhoutuvat oikein
+
+Kaksi tapaa:
+
+3.1 Pino-oliot (ei älyosoittimia)
+Pääfunktiossa voit:
+
+luoda tavallisen Animal-olion
+
+luoda tavallisen Dog-olion
+
+kutsua kummallekin callOut()-metodia
+
+kun main loppuu, molemmat oliot tuhoutuvat automaattisesti -> kutsuu vastaavat destruktorit
+
+Tällöin näet ei-polymorfisen tilanteen:
+
+Animal-tyypistä olio kutsuu Animalin versiota
+
+Dog-tyypistä olio kutsuu Dogin versiota
+
+3.2 Polymorfinen käyttö älyosoittimilla
+Jos haluat samalla harjoitella polymorfismia:
+
+Lisää #include <memory> main.cpp:iin
+
+Luo kantaluokan älyosoitin, joka osoittaa Dog-olioon; rakenne ajatuksena:
+
+std::unique_ptr<Animal> tyyppinen muuttuja
+
+alustetaan luomalla Dog-olio std::make_unique-funktion avulla
+
+Kutsu callOut() tuon kantaluokka-osoittimen kautta
+
+Tällöin:
+
+koska callOut on virtuaalinen ja Dog ylikirjoittaa sen,
+
+kutsu menee Dogin toteutukseen, vaikka muuttujan tyyppi on Animal
+
+kun älyosoitin menee elinkaarensa loppuun (esim. main päättyy),
+
+unique_ptr vapauttaa automaattisesti muistin
+
+Animalin virtuaalinen destruktori takaa, että myös Dogin destruktori kutsutaan oikein
+
+Voit halutessasi lisäksi:
+
+luoda suoran std::unique_ptr<Dog>-muuttujan ja kutsua callOut() siltä -> ei polymorfiaa, mutta Dogin oma tyyppi käytössä ja voit käyttää Dogin omia lisämetodeja, jos sellaisia keksit.
+
+4. Mitä kannattaa vielä varmistaa
+Kun olet kirjoittanut rungon itse:
+
+Käännä projekti – virheilmoituksista näet helposti:
+
+puuttuuko override-merkintä
+
+onko otsikkotiedosto sisällytetty oikein
+
+Aja ohjelma ja tarkista:
+
+että Animal-olion callOut tulostaa yleisen viestin
+
+että Dog-olion callOut tulostaa koirakohtaisen viestin
+
+että polymorfisessa tapauksessa (Animal-osoitin → Dog-olio) ruudulle tulee Dogin viesti
+
+Jos haluat, seuraavassa vaiheessa voimme katsoa vain main-funktion rakenneskeletin (ilman konkreettisia rivejä), ja voit itse täydentää sen – tai voit näyttää oman yrityksesi niin kommentoin, mitä siihen kannattaa korjata.
+
+Sinä sanoit:
+1\. Animal-luokka (kantaluokka) ------------------------------- **Tiedostot:** * `Animal.h` – luokan määrittely * `Animal.cpp` – metodien toteutus **Mitä `Animal.h`\-tiedostossa on rungollisesti:** * Luokkajulistus * Julkinen oletusrakentaja (voi olla tyhjä) * **Virtuaalinen destruktori** * **Virtuaalinen** `callOut`\-metodi (ei puhtaasti virtuaalinen tässä tehtävässä) Rakenne-idea, ei täytenä koodina: * `#pragma once` tms. yläosaan * `class Animal {` * `public:` * rakentaja * `virtual` destruktori * `virtual` funktio `callOut()` ilman parametreja, ei paluuarvoa * Toteutuksessa tulostat tekstin, jossa kerrotaan, että eläin ääntelee * `};` **Animal.cpp**\-tiedostossa: * Sisällytä Animalin otsikkotiedosto * Toteuta rakentaja (voi olla tyhjä) * Toteuta destruktori (voi olla tyhjä) * Toteuta `callOut()` siten, että se **tulostaa ohjeen antaman yleisen eläinviestin**
+
+one step a time. lets take it slow, so i can understand what i m doing.
+
+-header
+#ifndef ANIMAL_H
+#define ANIMAL_H
+#include <string>
+
+class animal{
+private:
+    std::string name;
+    
+public:
+    animal();
+    ~animal();
+    void callout();
+};
+
+#endif // ANIMAL_H
+ChatGPT sanoi:
+
+Mietti 26s
+Hyvä, just näin – otetaan tämä tosi rauhassa ja katsotaan vain mitä pitää muuttaa, ei valmista koodipalaa.
+
+Sun header on nyt:
+
+#ifndef ANIMAL_H
+#define ANIMAL_H
+#include <string>
+
+class animal{
+private:
+    std::string name;
+    
+public:
+    animal();
+    ~animal();
+    void callout();
+};
+
+#endif // ANIMAL_H
+Käydään muutokset kohta kohdalta.
+
+1. Nimi ja tyyli
+Tehtävässä puhuttiin luokasta Animal, isolla A:lla.
+
+🔧 Muuta:
+
+Rivillä, jossa on class animal{, vaihda luokan nimi muotoon, jossa:
+
+alkaa isolla kirjaimella
+
+vastaa tarkalleen tehtävän nimeä
+
+Samoin rakentajan ja destruktorin nimet pitää olla täsmälleen sama kuin luokan nimi:
+
+rakenne: luokan nimi ilman paluuarvoa
+
+destruktori: sama nimi, mutta ~-merkki edessä
+
+Eli: kun vaihdat luokan nimen, muista vaihtaa se myös rakentajan ja destruktorin riveillä.
+
+2. Tarvitsetko name-kenttää?
+Tehtävä ei vaadi nimeä ollenkaan – se puhuu vain callOut-metodista, joka tulostaa yleisen tekstin.
+
+Sinulla on nyt:
+
+yksityinen jäsenmuuttuja std::string name;
+
+#include <string>
+
+Vaihtoehdot:
+
+Helpoin: jos et tarvitse nimeä missään, voit
+
+poistaa tämän yksityisen jäsenmuuttujan
+
+poistaa myös #include <string>-rivin, koska sitä ei enää tarvita
+
+(Polymorfismiharjoitusta ajatellen nimi ei tuo lisäarvoa.)
+
+Jos haluat säilyttää nimen, sekin on ok, mutta sitten myöhemmin rakentajassa ja mahdollisesti callOutissa voit käyttää sitä. Valitse kumpi tuntuu paremmalta, mutta yksinkertaisuuden vuoksi suosittelen alkuun poistamaan nimen.
+
+3. Virtuaalinen destruktori
+Tehtävässä painotettiin, että kantaluokan destruktorin pitää olla virtuaalinen, jotta polymorfia toimii oikein älyosoittimien kanssa.
+
+Sinulla on nyt:
+
+destruktori ilman virtual-sanaa
+
+🔧 Muuta destruktorin julistusta niin, että:
+
+sen alkuun lisätään avainsana, joka tekee siitä virtuaalisen (sama sana, jota käytetään virtuaalifunktioissa)
+
+nimi ja sulut pysyvät samoina kuin luokan nimiin sovitetut
+
+Sanallisesti:
+
+"Lisää sana virtual destruktorin eteen sen julistuksessa."
+
+4. Virtuaalinen callOut-metodi
+Tehtävässä myös callOut pitää olla virtuaalinen, jotta Dog-luokka voi ylikirjoittaa sen polymorfisesti.
+
+Sinulla on nyt:
+
+void callout();
+(huomaa: pieni o ja erilainen kirjainkoko kuin tehtävän callOut)
+
+🔧 Tee kaksi asiaa:
+
+Vaihda metodin nimi samaan muotoon kuin tehtävässä (kirjainkoko mukaan lukien: iso O vai pieni o? Pidä se täsmälleen samana kuin ohjeessa).
+
+Lisää metodin alkuun sama virtuaali-avainsana, jota käytit destruktorille.
+
+Eli:
+
+"Metodin nimen pitäisi olla callOut, ja sen edessä pitäisi olla virtual."
+
+5. Yhteenveto tehtävistä sinulle
+Tee nämä muutokset Animal.h-tiedostoon:
+
+Vaihda luokan nimen kirjoitusasu vastaamaan tehtävän Animal-nimeä ja päivitä nimi myös rakentajassa ja destruktorissa.
+
+Päätä, käytätkö name-jäsentä:
+
+jos et, poista std::string name; ja #include <string>
+
+Lisää virtual-avainsana:
+
+destruktorin julistukseen
+
+callOut-metodin julistukseen
+
+Vaihda callout → callOut (täsmälleen sama nimi kuin ohjeessa).
+
+Kun olet tehnyt nämä ja haluat, laita päivitetty headeri tänne (tai kerro sanallisesti mitä muutit), niin katsotaan seuraavassa vaiheessa Animal.cpp rungon läpi samalla hitaalla tahdilla.
+
+Sinä sanoit:
+älä anna palautteessa korjaus metodia. ilmoita VAIN mitkä kohdat ovat väärin. etsin itse korjaus metodin. anna vain korjattu malli, jos sitä pyydetään erikseen
+ChatGPT sanoi:
+Ymmärretty — jatkossa en anna korjaustapaa, vaan listaan vain virheelliset kohdat.
+
+Tarkastan siis sinun Animal-headerisi ja kerron vain, mitkä kohdat ovat pielessä.
+
+VIRHEELLISET KOHDAT Animal-headerissasi
+Luokan nimi ei vastaa tehtävänannon mukaista kirjoitusasua.
+
+Rakentajan nimi ei vastaa luokan nimeä.
+
+Destruktorin nimi ei vastaa luokan nimeä eikä ole virtuaalinen.
+
+callOut-metodin nimi ei vastaa tehtävänannon kirjoitusasua.
+
+callOut-metodi ei ole virtuaalinen.
+
+string-jäsen ei kuulu tehtävänannon vaatimuksiin (ei ole pakollinen).
+
+include <string> ei ole tarpeellinen, jos edellinen jäsen poistetaan.
+
+Jos haluat, voit lähettää seuraavan version tarkistettavaksi, ja annan taas vain listan vääristä kohdista.
+
+Sinä sanoit:
+#ifndef ANIMAL_H
+#define ANIMAL_H
+#include <string>
+
+class animal{
+private:
+    std::string name;
+    
+public:
+    animal();
+   virtual ~animal();
+   virtual void callOut();
+};
+
+#endif // ANIMAL_H
+ChatGPT sanoi:
+Vialliset / ohjeesta poikkeavat kohdat tässä versiossa:
+
+Luokan nimi ei vastaa tehtävänannon luokan nimen kirjoitusasua.
+
+Rakentajan nimi ei vastaa luokan nimeä.
+
+Yksityinen jäsen std::string name; ei kuulu tehtävänannon vaatimuksiin (ei ole tarpeellinen tässä harjoituksessa).
+
+#include <string> ei ole tarpeellinen, jos edellä mainittua jäsentä ei käytetä.
+
+Sinä sanoit:
+header on kunnossa jatketaan cpp tiedostosta
+ChatGPT sanoi:
+Hyvä — jatketaan Animal.cpp-toteutukseen, mutta samalla tavalla kuin aiemmin:
+en anna valmista koodia, en metodia, en rivejä. Vain rakenne- ja tarkistusohjeita.
+
+Jotta voimme edetä vaihe vaiheelta, tarvitset kaksi vaihtoehtoa:
+
+✔️ Vaihtoehto A — Näytät oman Animal.cpp-tiedostosi
+Jos lähetät Animal.cpp:n nykyisen sisällön,
+→ annan vain listan virheellisistä kohdista, aivan kuten headerin kanssa.
+En anna korjaustapaa ennen kuin sitä erikseen pyydät.
+
+✔️ Vaihtoehto B — Haluat ohjeen ilman, että lähetät tiedostoa
+Jos haluat jatkaa ilman, että näytät cpp:tä, voin kertoa:
+
+mitä asioita Animal.cpp:ssä täytyy rungollisesti olla,
+
+ilman rivejä, ilman konkreettista syntaksia.
+
+Kumpi tapa sopii seuraavaksi?
+
+Sinä sanoit:
+#include "animal.h"
+#include <iostream>
+
+animal::animal(){
+    std::cout << "Eläin ääntelee" << std::endl;
+
+this is not right, i know for sure. doesnt "eläin ääntelee" part be to bind to something so we can change it later or
+ChatGPT sanoi:
+Tarkistan vain virheelliset kohdat tästä, en anna korjausmetodeja:
+
+❌ VÄÄRÄT / POIKKEAVAT KOHDAT Animal.cpp:ssäsi
+Luokan nimi toteutuksessa ei vastaa headerissa vaadittua nimeä.
+
+Rakentajaan ei kuulu mitään tulostusta tehtävänannon mukaan.
+
+callOut-metodin toteutusta ei näy lainkaan.
+
+Teksti "Eläin ääntelee" on sijoitettu väärään paikkaan (ei kuulu rakentajaan).
+
+Jos haluat, voit näyttää koko Animal.cpp:n (kaikki metodi­runkojen alut mukana), niin voin listata loputkin mahdolliset virheet.
+
+Sinä sanoit:
+anna vihje rakenteesta
+ChatGPT sanoi:
+Tässä rakennevihje, joka ei sisällä koodia eikä rivejä, mutta kertoo mitä Animal.cpp:n osien kuuluu olla ja mihin järjestykseen ne yleensä tulevat:
+
+🧩 Animal.cpp rakenteen idea
+Sisällytä Animalin header
+– Tämä kertoo kääntäjälle, mitä metodeja sinun pitää toteuttaa.
+
+Rakentajan toteutus
+– Rakenne on tyhjä tai tekee vain luokan sisäisiä alkuasetuksia.
+– Ei tulosta mitään, koska callOut on se joka ääntää.
+
+Destruktorin toteutus
+– Sama juttu: yleensä tyhjä, ellei ole erityistä siivottavaa.
+– Ei tulosta mitään tehtävänannossa.
+
+callOut-metodin toteutus
+– Tämä on se paikka, jossa Animal-luokan oletusääni tulostetaan.
+– Tässä toteutuksessa kuuluu olla se yksi lause, jonka ohje antoi.
+– Tämä on se funktio, jonka Dog tulee myöhemmin ylikirjoittamaan.
+
+🔍 Käytännön ajatusvirta
+Headerissa julistit kolme funktiota: rakentajan, destruktorin ja callOutin.
+
+Animal.cpp:
+– Toteutat jokaisen niistä, samassa järjestyksessä kuin headerissa.
+
+Ainoa paikka, jossa Animal tulostaa oman äänensä:
+→ callOut, ei rakentaja.
+
+Jos haluat, voit nyt tehdä oman version Animal.cpp:stä tämän rakenteen perusteella ja lähettää sen — listaan taas vain virheelliset kohdat.
+
+Sinä sanoit:
+kyllä kiitos
+ChatGPT sanoi:
+Hienoa — silloin jatketaan samalla tavalla kuin aiemmin.
+Jotta voin tarkistaa seuraavan vaiheen vain listaamalla virheet, tarvitsen sinulta:
+
+👉 Animal.cpp-tiedoston version, jonka teit äskeisen rakennevihjeen perusteella.
+
+Kun lähetät sen, vastaan:
+
+vain listalla asioista, jotka ovat väärin tai poikkeavat ohjeesta,
+
+ilman korjaustapaa,
+
+ja mennään askel kerrallaan eteenpäin.
+
+Sinä sanoit:
+#include "animal.h"
+#include <iostream>
+
+animal::animal(){
+    
+    std::cout << callOut() << std::endl;
+}
+animal::~animal(){
+    }
+
+voi animal::callOut(){
+    
+}    
+
+poikkeus tässä kohdassa anna malli esimerkki ja kerro jokainen koodi erikseen selittäen sen toiminta
+ChatGPT sanoi:
+Selvä — koska sanoit erikseen “anna malli esimerkki”, voin nyt antaa täyden mallin Animal.cpp-rakenteesta ja selittää jokaisen osan erikseen.
+(Et ole pyytänyt vielä Dog-luokan mallia, joten annan vain Animal.cpp:n.)
+
+Alla esimerkki täsmälleen oikeasta rakenteesta:
+
+✅ Oikea malliesimerkki: Animal.cpp
+#include "animal.h"
+#include <iostream>
+
+// Rakentaja
+Animal::Animal() {
+    // Ei tehdä mitään erityistä
+}
+
+// Destruktori
+Animal::~Animal() {
+    // Ei tehdä mitään erityistä
+}
+
+// Virtuaalinen callOut-metodin toteutus
+void Animal::callOut() {
+    std::cout << "Eläin ääntelee." << std::endl;
+}
+🔍 Selitys rivi riviltä
+1. Headerin sisällytys
+#include "animal.h"
+Tämä liittää luokan määrittelyn (= Animal-luokan julistuksen).
+
+Ilman tätä CPP-tiedosto ei tietäisi, mitä metodeja sinun pitää toteuttaa.
+
+2. I/O-kirjasto
+#include <iostream>
+Tarvitaan, koska käytät std::cout.
+
+Tulostustoiminto tulee tästä.
+
+3. Rakentaja
+Animal::Animal() {
+    // Ei tehdä mitään erityistä
+}
+Rakentaja kutsutaan kun luokan olio luodaan.
+
+Tässä harjoituksessa ei tarvitse tehdä mitään.
+
+TÄRKEÄÄ: Rakentaja EI tulosta ääntä.
+→ ääni kuuluu callOut-metodiin, jotta Dog voi ylikirjoittaa sen.
+
+4. Destruktori
+Animal::~Animal() {
+    // Ei tehdä mitään erityistä
+}
+Kutsutaan, kun olio tuhoutuu.
+
+Ei tarvitse tulostaa mitään.
+
+Destruktori on headerissa virtual, jotta polymorfinen tuhoutuminen toimii.
+
+5. callOut-metodi
+void Animal::callOut() {
+    std::cout << "Eläin ääntelee." << std::endl;
+}
+Tämä on virtuaalinen metodi headerissa.
+
+Tämä on se metodi, jonka Dog-luokka ylikirjoittaa.
+
+Tulostaa Animalin oletusäänen.
+
+Polymorfismi toimii niin, että jos sinulla on:
+
+std::unique_ptr<Animal> a = std::make_unique<Dog>();
+a->callOut();
+kutsu ohjautuu Dog::callOut-versioon.
+
+🔚 Mitä korjasimme sinun alkuperäisessä versiossasi
+Selitän, miksi sinun koodisi ei toiminut:
+
+❌ Virhe 1 — Rakentajasta yritettiin tulostaa callOutin palautusarvo
+std::cout << callOut() << std::endl;
+callOut() ei palauta mitään → ei voi tulostaa.
+
+callOut tulostaa itse, sitä ei tulosteta cout << kautta.
+
+❌ Virhe 2 — callOut-metodin runko puuttui
+voi animal::callOut(){
+    
+}
+Tässä oli kirjoitusvirhe (voi → void).
+
+Myös luokan nimi oli väärä (iso A puuttui).
+
+Sisältö puuttui kokonaan.
+
+❌ Virhe 3 — ääni oli väärässä metodissa
+äänen pitää tulla callOutissa, ei rakentajassa.
+
+✔️ Jos haluat, seuraavaksi voimme tehdä saman Dog.cpp:lle
+Näytät oman version → listaan virheet →
+ja vasta kun pyydät, annan täydellisen mallin + selitykset samalla tavalla kuin nyt.
+
+Sopiiko?
+
+Sinä sanoit:
+Rakenne: * `class Dog : public Animal {` * `public:` * rakentaja * destruktori * `void callOut() override;` * `};`
+
+tämä tyyli paljastaa liikaa. 
+
+#include "dog.h"
+#include <iostream>
+
+dog::dog() {}
+
+dog::~dog(){}
+ void callOut();
+
+void animal::callOut()
+    std::cout << "Koira haukkuu" << std::endl;
+
+in this how should i do this. callout. by getting the callout from animal file ?
+ChatGPT sanoi:
+Selvä — nyt mennään tosi varovaisesti, niin ettei paljasteta liikaa ja ettei ratkaisu ole liian suora. Kerron vain mikä Dog.cpp:ssäsi on rikki ja mitä pitäisi ymmärtää konseptina, ei koodiesimerkkiä.
+
+❌ Tarkistus: Mitkä kohdat Dog.cpp:ssäsi ovat väärin
+Luokan nimi on väärässä muodossa (kirjainkoko ei vastaa otsikkotiedoston luokan nimeä).
+
+callOut-metodin toteutus ei ole sidottu Dog-luokkaan.
+
+callOut-metodin määrittely ei käytä oikeaa luokkakohtaista syntaksia.
+
+callOut-metodin rivi, jossa lukee void callOut();, ei kuulu cpp-tiedostoon.
+
+Ei toteuteta Dog-luokan versiota callOutista, vaan yrität toteuttaa Animal-luokan version Dog.cpp:ssä.
+
+Puuttuu Dog-luokan callOut-metodin runko, joka ylikirjoittaa Animal::callOutin.
+
+Rakenne on väärä: Animalin toteutus ei kuulu Dog.cpp:ään lainkaan.
+
+🔍 Vastaus kysymykseesi konseptitasolla
+"How should I do this? callOut. By getting the callOut from animal file?"
+
+Tässä vastaus ilman koodia:
+
+✔️ Dog-luokan callOut ei hae Animalin callOutia.
+→ Se ylikirjoittaa sen.
+
+✔️ Sinun täytyy toteuttaa Dogin oma callOut-metodi Dog.cpp:ssä
+→ Ei Animal.cpp:ssä
+→ Ei Dogin rakentajassa
+→ Ei irrallisena funktiona
+
+✔️ Dogin callOut-metodi tehdään samalla tavalla kuin Animalin callOut
+Mutta:
+
+Nimi on sama (callOut)
+
+Luokan nimi vaihdetaan Dogiksi
+
+Sisältö tulostaa koiran version
+
+override on kerrottu headerissa, mutta cpp:ssä ei käytetä override-sanaa
+
+❗ Tärkeä periaate:
+Animal.cpp sisältää vain Animal-metodit.
+Dog.cpp sisältää vain Dog-metodit.
+
+Et koskaan toteuta Animalin metodia Dog.cpp:ssä.
+
+🧠 Konseptivihje toteutustavasta
+Dog.cpp:ssa pitää olla kolme osaa:
+
+Dogin rakentaja
+
+Dogin destruktori
+
+Dogin oma callOut-metodi
+
+joka korvaa Animalin version
+
+ja tulostaa koiran äänen
+
+Ei Animal-metodeja, ei irrallisia funktioita, ei ylimääräisiä puolivalmiita julistuksia.
+
+Jos haluat, voit nyt korjata Dog.cpp:n rakenteen itse ja lähettää uuden version →
+annan taas vain listan virheistä, jotta voit itse löytää korjaukset.
+
+Sinä sanoit:
+#include "dog.h"
+#include <iostream>
+
+dog::dog() {}
+
+dog::~dog(){}
+
+
+void dog::callOut(){
+    std::cout << "Koira haukkuu" << std::endl;
+}
+
+ChatGPT sanoi:
+Tarkastan tämän version ja annan vain virheelliset kohdat, kuten pyysit — ei korjaustapoja, ei koodia.
+
+❌ Virheelliset / poikkeavat kohdat Dog.cpp:ssäsi
+Luokan nimi ei vastaa tehtävänannon luokan nimen kirjoitusasua (kirjainkoko).
+
+Rakentajan nimi ei vastaa luokan nimeä (kirjainkoko).
+
+Destruktorin nimi ei vastaa luokan nimeä (kirjainkoko).
+
+callOut-metodin toteutuksen alkuosa ei käytä samaa luokan nimeä kuin header.
+
+Tekstiä ei ole päätetty pisteellä kuten tehtävänanto ohjeessa (pieni huomio, mutta ero on).
+
+Kun haluat, voit lähettää korjatun version seuraavaksi — tarkistan taas vain virheet.
+
+Sinä sanoit:
+luokan nimi dog on hyvä. älä välitä tästä
+ChatGPT sanoi:
+Selvä — jos luokan nimi dog on tarkoituksella juuri noin, en huomioi sitä virheenä.
+
+Tarkastan siis Dog.cpp:n uudelleen, tällä kertaa jättäen nimen kokonaan huomiotta.
+
+❌ Virheet Dog.cpp-tiedostossa (LUOKAN NIMEÄ EI OTETA HUOMIOON)
+callOut-metodin sisältö ei vastaa tehtävänannon lauseen tarkkaa muotoa.
+
+Metodin sisäinen teksti puuttuu tehtävänannossa oleva piste lopusta.
+
+Jos haluat, voit lähettää seuraavan version ja tarkistan uudelleen vain virheet.
+
+Sinä sanoit:
+#include "dog.h"
+#include <iostream>
+
+dog::dog() {}
+
+dog::~dog(){}
+
+
+void dog::callOut(){
+    std::cout << "Koira haukkuu." << std::endl;
+}
+ChatGPT sanoi:
+Tarkastan koodin taas sääntöjen mukaan (luokan nimen muotoa ei huomioida virheenä).
+
+✅ Virheet Dog.cpp-tiedostossa:
+Ei virheitä.
+
+Kaikki tämän harjoituksen vaatimukset täyttyvät tämän tiedoston osalta.
+
+Kun haluat, voimme siirtyä seuraavaan vaiheeseen:
+👉 main.cpp rungon tarkistus samalla tyylillä (vain virhelista).
+
+Sinä sanoit:
+#include <memory>
+#include <vector>
+#include "animal.h"
+#include "dog.h"
+#include <iostream>
+
+using namespace std;
+
+int main(){
+    
+    std::vector<std::unique_ptr<animal>> animals;
+    animals.push_back(std::make_unique<dog>());
+    //animals.push_back(std::make_unique<Cat>());
+    //animals.push_back(std::make_unique<Bird>());
+}
+    for (const auto& animal : animals) {
+        animal->callOut();  // Jokainen eläin toteuttaa oman luokkansa callOut-metodin
+    }
+
+
+EI tehtävä annon mukainen. Mutta anna virheet
+ChatGPT sanoi:
+Tarkastetaan vain virheet, ei korjauksia eikä oikeaa mallia.
+
+❌ Virheet main.cpp-tiedostossasi
+Tietorakenne käyttää väärää kantaluokkatyyppiä.
+– Vektorissa on unique_ptr<animal>, mutta tehtävänannon luokan nimi on eri kirjoitusasulla.
+
+Silmukka on koodilohkon ulkopuolella.
+– for-silmukka on main-funktion ulkopuolella.
+
+Silmukka viittaa muuttujaan, joka ei ole sen näkyvyysalueessa.
+– animals ei ole käytettävissä silmukan kohdassa.
+
+main-funktio ei kutsu callOut-metodia tehtävänannon pyytämällä tavalla.
+– Ei ole yksittäisiä olioita (Animal + Dog) eikä niille tehty kutsuja.
+
+main-funktion rakenne ei vastaa tehtävänannon pyyntöä luoda kaksi oliota (yksi Animal, yksi Dog).
+
+Kommentoidut Cat ja Bird viittaavat luokkiin, joita ei ole tehtävässä.
+
+Koodilohkojen sulkujen järjestys ei ole oikein.
+
+Jos haluat, voit tehdä uuden version mainista ja tarkistan sen taas virhelistalla.
+
+Sinä sanoit:
+#include <memory>
+#include "animal.h"
+#include "dog.h"
+#include <iostream>
+
+using namespace std;
+
+int main(){
+
+    unique_ptr<Dog> dog = make_unique<Dog>();
+    
+    
+    
+}
+
+ChatGPT sanoi:
+Tarkastetaan tämä vain virheiden listauksena, ei korjauksia eikä koodia tilalle.
+
+❌ Virheet main.cpp-tiedostossasi
+Luokkanimen kirjoitusasu ei vastaa omaa Dog-luokkaasi.
+– Käytät Dog, vaikka projektissasi luokan nimi on aiemmissa esimerkeissä ollut eri muodossa.
+
+Tehtävänannon vaatimaa Animal-olion luontia ei ole.
+
+Tehtävänannon vaatimaa Dog-olion callOut-kutsua ei ole.
+
+Tehtävänannon vaatimaa Animal-olion callOut-kutsua ei ole.
+
+Tehtävä ei pyytänyt polymorfista smart pointer -käyttöä Dog-luokan kautta, vaan
+– Animal-olio + Dog-olio
+– ja molempien callOut-kutsut.
+
+main-funktiossa ei tapahdu mitään muuta kuin olion luonti, eli ohjelma ei tee tehtäväannon mukaista toimintaa.
+
+Ei ole varmistusta siitä, että Animal-luokan ja Dog-luokan destruktorit kutsutaan, koska Animal-olion luonti puuttuu kokonaan.
+
+Kun haluat, voit tehdä uuden version — tarkistan sen taas samalla tavalla vain virhelistauksena.
+
+Sinä sanoit:
+#include <memory>
+#include "animal.h"
+#include "dog.h"
+#include <iostream>
+
+using namespace std;
+
+int main(){
+    
+    Animal elain1 ();
+    Dog koira1 ();
+    
+    elain1.callOut();
+    koira1.callOut();
+    
+    
+}
+
+
+tähän suuntaanko =
+ChatGPT sanoi:
+Tarkastetaan tämä saman säännön mukaan kuin ennen:
+👉 vain virheelliset kohdat, ei korjaustapaa eikä oikeaa koodia.
+
+❌ Virheet main.cpp-versiossasi
+Olioiden luonti on väärässä muodossa.
+– Kirjoitustapa Animal elain1 (); ja Dog koira1 (); ei luo olioita, vaan julistaa funktiot.
+
+Luokkanimien kirjoitusasu ei vastaa aiempaa toteutustasi.
+– Käytät Animal ja Dog, vaikka projektissasi luokan nimet ovat eri muodossa (aiemmissa tiedostoissa oli pienellä alkukirjaimella).
+
+Tehtävänannossa ei käytetä sulkuja olion luonnissa, ellei parametreja ole.
+
+Nimi elain1 ei vastaa tehtävänannon englanninkielistä nimeämistyyliä, mutta tämä on pieni huomio.
+
+Jos haluat, tee seuraava versio main.cpp:stä — tarkistan taas vain virheet.
+
+Sinä sanoit:
+anna esimerkki koodi
+ChatGPT sanoi:
+Tässä kohtaa pyysit suoraan esimerkkikoodia, joten nyt voin antaa sen kokonaisena ilman rajoituksia.
+
+Alla on täysin toimiva esimerkki, joka vastaa täsmälleen tehtävänantoa:
+
+luodaan Animal-olio
+
+luodaan Dog-olio
+
+kutsutaan molempien callOut
+
+käytetään stack-olioita, ei smart pointereita (koska tehtävä ei vaadi niitä)
+
+nimet ovat isolla alkukirjaimella, koska se on vakiokäytäntö C++-luokissa
+
+✅ VALMIS MAIN.CPP – ESIMERKKIKOODI
+#include <iostream>
+#include "animal.h"
+#include "dog.h"
+
+int main() {
+    Animal elain1;   // luo Animal-olion
+    Dog koira1;      // luo Dog-olion
+
+    elain1.callOut();   // tulostaa: Eläin ääntelee.
+    koira1.callOut();   // tulostaa: Koira haukkuu.
+
+    return 0;
+}
+📌 Selitys
+Animal elain1;
+Luo kantaluokan olion.
+
+Kun kutsut elain1.callOut() → suoritetaan Animalin versio.
+
+Dog koira1;
+Luo perityn luokan olion.
+
+Kun kutsut koira1.callOut() → suoritetaan Dog-luokan ylikirjoitettu versio.
+
+Polymorfia ei ole tässä pakollinen
+Tehtävänanto ei vielä vaadi smart pointereita, joten tämä versio täyttää kaikki vaatimukset.
+
+Jos haluat, voin antaa myös polymorfisen version (unique_ptr ja Animal-tyyppinen osoitin), mutta tämä on juuri se, mitä harjoitus 3b pyytää.
+
+Sinä sanoit:
+tarkempi selitys. jokainen koodin kohta paitsi #includes pitää selittää
+ChatGPT sanoi:
+Tässä tulee erittäin tarkka, kohta kohdalta etenevä selitys, jossa selitän jokaisen rivin ja elementin paitsi include-rivien, kuten pyysit.
+Selitän myös, mitä C++ tekee taustalla.
+
+Koodi, jota selitämme:
+
+int main() {
+    Animal elain1;
+    Dog koira1;
+
+    elain1.callOut();
+    koira1.callOut();
+
+    return 0;
+}
+🔍 SELITYS – RIVI RIVILTÄ
+💠 int main() {
+Tämä aloittaa ohjelman pääfunktion.
+
+main on se kohta, josta C++-ohjelma käynnistyy.
+
+int tarkoittaa, että funktio palauttaa lopuksi kokonaisluvun käyttöjärjestelmälle.
+
+Arvo 0 = kaikki meni oikein.
+
+💠 Animal elain1;
+Mitä tässä tapahtuu?
+Luodaan Animal-luokan olio nimeltä elain1.
+– Tätä kutsutaan pino-olioksi (stack object).
+
+C++ suorittaa automaattisesti Animal-luokan rakentajan.
+– Tämä on se funktio Animal::Animal(), jonka kirjoitit Animal.cpp:ään.
+
+Olio elain1 syntyy ja elää main-funktion lohkon sisällä (lohko on {}-sisältö).
+
+Miksi tämä on tärkeää?
+Tämä on ensimmäinen olio, jota käytät kutsumaan Animalin callOut-metodia.
+
+Jokainen Animal-olio (myös ne, joista peritään) saa oman erillisen elinkaaren.
+
+💠 Dog koira1;
+Mitä tässä tapahtuu?
+Luodaan Dog-luokan olio nimeltä koira1.
+– Tämä olio perii Animalin, koska Dog : public Animal.
+
+C++ suorittaa seuraavan ketjun:
+
+ensin Animal-luokan rakentaja
+
+sen jälkeen Dog-luokan rakentaja
+
+Tämä on aina perintäluokassa:
+
+Kantaluokka rakentuu ensin → sitten perivä luokka.
+
+Nyt koira1-oliolla on:
+
+Animal-luokan ominaisuudet
+
+Dog-luokan omat ominaisuudet
+
+ylikirjoitettu callOut-metodi
+
+💠 elain1.callOut();
+Mitä tapahtuu?
+Kutsut elain1-olion kautta Animal-luokan callOut-metodia.
+
+Koska elain1 on Animal-tyyppiä, C++ käyttää Animalin versiota funktiosta.
+
+Tulostuu Animal.cpp:n sisällön mukainen lause:
+
+"Eläin ääntelee."
+
+Miksi tämä on tärkeää?
+Tämä näyttää, että kantaluokan oma toiminta toimii sellaisenaan.
+
+Tässä ei ole polymorfiaa — tämä on suora kutsu.
+
+💠 koira1.callOut();
+Mitä tapahtuu?
+Kutsut callOut-metodia Dog-olion kautta.
+
+Koska Dog on ylikirjoittanut Animalin metodin:
+
+C++ valitsee Dog-luokan version callOut-funktiosta.
+
+Tulostuu Dog.cpp:ssä määritelty lause:
+
+"Koira haukkuu."
+
+Miksi tämä on tärkeää?
+Tämä demonstroi ylikirjoittamista (method overriding).
+
+Tässä ei tarvita polymorfiaa, koska olio on Dog-tyyppiä.
+
+💠 return 0;
+Palautetaan arvo 0 käyttöjärjestelmälle.
+
+Tämä kertoo: “Ohjelma päättyi onnistuneesti”.
+
+💠 } (main-funktion lopetus)
+Kun tätä sulku-merkkiä vasten ohjelman suoritus poistuu mainista:
+
+Dog-olion koira1 tuhoutuu ensin
+
+Kutsutaan Dog-luokan destruktori (~Dog())
+
+Sitten Animal-luokan destruktori (~Animal()), koska Dog perii Animalin
+
+Animal-olion elain1 tuhoutuu sen jälkeen
+
+Kutsutaan Animal-luokan destruktori
+
+Miksi tämä on tärkeää?
+Se demonstroi, että tuhoamisketju toimii oikein.
+
+Dog-luokan destruktori toimii ensin, Animal-luokan destruktori lopuksi.
+
+📌 Yhteenveto — mitä tämä pieni main tekee?
+Luo Animal-olion → kutsuu sen ääntä.
+
+Luo Dog-olion → kutsuu Dogin ylikirjoitettua ääntä.
+
+Näyttää periytymisen, ylikirjoittamisen ja tuhoamisen järjestyksen.
+
+Täsmälleen sitä, mitä tehtävä 3b pyytää.
+
+Jos haluat, voin selittää seuraavaksi:
+
+miten polymorfinen versio tehdään
+
+miten smart pointerit toimivat
+
+miksi destruktori pitää olla virtual
+
+miten kantaluokan osoitin voi kutsua Dogin metodin
+
+Sano vain!
+
+Sinä sanoit:
+kyllä kiitos
+ChatGPT sanoi:
+Mahtavaa — mennään seuraavaksi polymorfiaan, smart pointereihin ja siihen, miksi virtuaalinen destruktori on välttämätön.
+Pidän selityksen askelittain, ilman koodia, kunnes pyydät esimerkkiä.
+
+🔶 1. Mitä polymorfia tarkoittaa?
+Polymorfia = kantaluokan osoitin tai smart pointer voi viitata perivän luokan olioon.
+
+Ajattele näin:
+
+Sinulla on “eläin” (Animal), mutta et tiedä mikä laji.
+
+Kysyt eläimeltä callOut().
+
+Jos se on Dog, se haukkuu.
+
+Jos se on Cat, se naukuu.
+
+Jos se on Bird, se visertää.
+
+Sama Animal-osoitin → eri ääni riippuen siitä, mikä olio on sen sisällä.
+
+🔶 2. Miksi tarvitsemme virtuaalisen metodin?
+Polymorfia toimii vain, jos metodi on:
+
+virtual void callOut();
+Ilman virtualia:
+
+kutsu menee kantaluokan versioon (Animal → “Eläin ääntelee.”)
+
+Virtualilla:
+
+C++ valitsee oikean version ajonaikaisesti
+
+eli käyttää Dog-luokan callOut-metodia
+
+Polymorfia on siis ajonaikaista ylikirjoittamista.
+
+🔶 3. Mitä Smart Pointer tekee?
+std::unique_ptr<T> on C++:n älyosoitin, joka:
+
+pitää muistissa omistamansa olion osoitteen
+
+vapauttaa muistin automaattisesti, kun se tuhoutuu
+
+ei tarvitse delete-komentoa koskaan
+
+on “ainut omistaja” (unique = yksin omistava)
+
+Normaali osoitin:
+
+sinun pitää itse poistaa (delete)
+
+helppo tehdä virheitä
+
+Smart pointer:
+
+hävittää olion kun muuttuja menee pois näkyvyydestä
+
+🔶 4. Miksi destruktori pitää olla virtual?
+Tämä on äärimmäisen tärkeä perinnässä.
+
+Jos tuhoat Dog-olion Animal-osoittimen kautta:
+
+ilman virtual ~Animal()
+→ vain Animalin destruktori kutsutaan
+→ Dogin destruktori ohitetaan
+→ mahdollista muistivuotoa
+
+virtual ~Animal()
+→ C++ kutsuu ensin Dogin destruktorin
+→ sitten Animalin destruktorin
+
+Täydellinen tuhoamisketju.
+
+Helppo mielikuva
+Kun sinulla on “eläinosoitin”, mutta eläin on oikeasti koira,
+C++ ei voi tietää tätä ilman virtuaalista destruktoria.
+
+Siksi:
+
+virtual ~Animal()
+on pakollinen aina, kun luokalla on virtuaalisia metodeja.
+
+🔶 5. Miltä polymorfinen luonti näyttää (selitys ilman koodia)
+Älä huoli, tämä ei ole koodi — vain sanallinen kuvaus:
+
+Luot std::unique_ptr<Animal>
+
+sisään luodaan Dog
+
+kutsut ->callOut()
+
+C++ katsoo: mikä olio osoittimen takana oikeasti on?
+
+Vastaa: “Se on Dog → käytän Dogin callOut-versiota”
+
+Tulos: “Koira haukkuu.”
+
+Vaikka muuttujan tyyppi on Animal.
+
+🔶 6. Miksi tämä on hyödyllistä?
+Voit tehdä vektorin:
+
+Animal
+
+Dog
+
+Cat
+
+Bird
+
+jne…
+
+Kaikki samassa listassa, koska niillä on yhteinen kantaluokka.
+
+Kutsut:
+
+animal->callOut();
+
+ja jokainen tekee oman äänensä.
+
+Tätä on laajennettavuus.
+
+Lisäät vain uuden perivän luokan (Cow), et muuta vanhaa koodia.
+
+🔶 7. Mitä haluat seuraavaksi?
+Voit valita:
+
+1️⃣ Haluan nähdä esimerkkikoodin polymorfiasta (unique_ptr + Animal-tyyppinen osoitin).
+2️⃣ Haluan selityksen vtable-taulusta (mitä virtual oikeasti tekee konepellin alla).
+3️⃣ Haluan tehdä itse polymorfisen version ja sinä kerrot vain virheet.
+4️⃣ Haluan selityksen perinnän tuhoutumisjärjestyksestä.
+5️⃣ Jokin muu aihe tässä kokonaisuudessa?
+Valitse numero — mennään sillä!
